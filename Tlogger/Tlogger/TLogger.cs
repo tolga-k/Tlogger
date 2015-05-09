@@ -30,6 +30,7 @@ namespace TLoggerProject
       }
     }
 
+
     public static void WriteLine(object logline)
     {
       log(logline);
