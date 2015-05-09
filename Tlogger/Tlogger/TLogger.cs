@@ -8,25 +8,23 @@ namespace TLoggerProject
   {
     #region attributes
 
-    private static string path = "TLOG.txt";
-    private const string Path = "Path", TempPath = Path;
+    private static string _logName { get { return ConfigurationManager.AppSettings[LogName] ?? FileName; } set { ConfigurationManager.AppSettings[LogName] = value; } }
+    private static string _Path { get { return ConfigurationManager.AppSettings[Path] ?? ""; } set { ConfigurationManager.AppSettings[Path] = value; } }
+    static public string GetPath { get { return ConfigurationManager.AppSettings[Path]; }}
+
+    private const string Path = "Path", TempPath = Path, LogName = "LogName", FileName = "TLog.txt";
     #endregion
 
-    public static void InitTLogger(string pathToFile)
+    public static void InitTLogger(string pathToFile, string filename = FileName)
     {
-      ConfigurationManager.AppSettings[Path] = pathToFile;
+      _logName = filename;
+      _Path = pathToFile;
       InitTLogger();
     }
 
-   static public string getPath
-    {
-      get { return ConfigurationManager.AppSettings[Path]; }
-    }
-
-
     public static void InitTLogger()
     {
-      using (StreamWriter sw = File.CreateText(ConfigurationManager.AppSettings[Path] + path))
+      using (StreamWriter sw = File.CreateText(ConfigurationManager.AppSettings[Path] + _logName))
       {
         sw.WriteLine("TLogger: Date = " + DateTime.Now.ToString());
       }
@@ -39,7 +37,7 @@ namespace TLoggerProject
 
     static public void log(object logline)
     {
-      using (StreamWriter sr = File.AppendText(ConfigurationManager.AppSettings[Path] + path))
+      using (StreamWriter sr = File.AppendText(ConfigurationManager.AppSettings[Path] + ConfigurationManager.AppSettings[LogName]))
       {
         sr.WriteLine(logline.ToString());
       }
