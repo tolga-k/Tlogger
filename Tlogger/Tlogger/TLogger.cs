@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Configuration;
 using System.IO;
+using System.Reflection;
+using TloggerProject;
 
 namespace TLoggerProject
 {
@@ -8,11 +10,12 @@ namespace TLoggerProject
   {
     #region attributes
 
-    private static string _logName { get { return ConfigurationManager.AppSettings[LogName] ?? FileName; } set { ConfigurationManager.AppSettings[LogName] = value; } }
-    private static string _Path { get { return ConfigurationManager.AppSettings[Path] ?? ""; } set { ConfigurationManager.AppSettings[Path] = value; } }
-    static public string GetPath { get { return ConfigurationManager.AppSettings[Path]; } }
+    static readonly Configuration AppConfig = ConfigurationManager.OpenExeConfiguration(Assembly.GetExecutingAssembly().Location);
+    private static string _logName { get { return AppConfig.AppSettings.Settings[Constants.LogName].Value ?? Constants.FileName; } set { AppConfig.AppSettings.Settings[Constants.LogName].Value = value; } }
+    private static string _Path { get { return AppConfig.AppSettings.Settings[Constants.Path].Value ?? ""; } set { AppConfig.AppSettings.Settings[Constants.Path].Value = value; } }
+    static public string GetPath { get { return AppConfig.AppSettings.Settings[Constants.Path].Value; } }
     
-    private const string Path = "Path", TempPath = Path, LogName = "LogName", FileName = "TLog.txt";
+    
     #endregion
 
     /// <summary>
@@ -20,17 +23,20 @@ namespace TLoggerProject
     /// </summary>
     /// <param name="pathToFile"></param>
     /// <param name="filename">Prefferably the filename with a extension</param>
-    public static void InitTLogger(string pathToFile, string filename = FileName)
+    public static void InitTLogger(string pathToFile, string filename = Constants.FileName)
     {
-      if (filename.Length<0)
-      {
-        _logName = FileName;
-      }
-      _logName = filename;
+
+
+      AppConfig.AppSettings.Settings[Constants.LastStartedLog].Value = DateTime.Now.ToString("yyyy-dd-M--HH-mm-ss");
+      _logName = checkFileName(filename);
       _Path = pathToFile;
       InitTLogger();
     }
 
+
+    /// <summary>
+    /// Standard initializer
+    /// </summary>
     public static void InitTLogger()
     {
       using (StreamWriter sw = File.CreateText(_Path + _logName))
@@ -39,12 +45,57 @@ namespace TLoggerProject
       }
     }
 
+    private static string checkFileName(string filename)
+    {
+      if (filename.Length < 0)
+      {
+        return AppConfig.AppSettings.Settings[Constants.FileName].Value +
+               AppConfig.AppSettings.Settings[Constants.Extension].Value;
+      }
+      string finalName = String.Empty;
+      Constants.FileSettingsEnum settings = Constants.FileSettingsEnum.MultipleFile;
+      Enum.TryParse(AppConfig.AppSettings.Settings[Constants.FileSettings].Value, result: out settings);
 
+      //Name
+      finalName += filename.Contains(".") ? filename.Substring(0, filename.IndexOf('.')) : filename;
+
+      if (settings == Constants.FileSettingsEnum.MultipleFile)
+      {
+        finalName += "_" + AppConfig.AppSettings.Settings[Constants.LastStartedLog].Value;
+      }
+
+      //Extension
+      if (filename.Contains("."))
+      {
+        finalName += "." + filename.Split(new string[] { "." }, StringSplitOptions.None)[1];
+      }
+      else
+      {
+        finalName += "." + AppConfig.AppSettings.Settings[Constants.Extension].Value;
+      }
+  
+      return finalName;
+
+    }
+
+    public static void SetFileSettings(Constants.FileSettingsEnum enumConstants)
+    {
+      AppConfig.AppSettings.Settings[Constants.FileSettings].Value = enumConstants.ToString();
+    }
+
+    /// <summary>
+    /// For easy implementation, will do the same as the log function
+    /// </summary>
+    /// <param name="logline"></param>
     public static void WriteLine(object logline)
     {
       log(logline);
     }
 
+    /// <summary>
+    /// Will add 
+    /// </summary>
+    /// <param name="logline"></param>
     static public void log(object logline)
     {
       using (StreamWriter sr = File.AppendText(_Path + _logName))
