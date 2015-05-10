@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Configuration;
+using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text;
@@ -22,6 +23,9 @@ namespace TloggerProject
       FileName = "TLog",
       Extension = "Extension",
       LastStartedLog = "LastStartedLog",
-      FileSettings = "FileSettings";
+      FileSettings = "FileSettings",
+      Configuration = "configuration",
+      OriginalLogName = "OriginalLogName", 
+      AppSettings = "appSettings";
   }
 }

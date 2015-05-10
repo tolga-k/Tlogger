@@ -2,6 +2,8 @@
 using System.Configuration;
 using System.IO;
 using System.Reflection;
+using System.Text;
+using System.Xml;
 using TloggerProject;
 
 namespace TLoggerProject
@@ -10,7 +12,7 @@ namespace TLoggerProject
   {
     #region attributes
 
-    static readonly Configuration AppConfig = ConfigurationManager.OpenExeConfiguration(Assembly.GetExecutingAssembly().Location);
+    static Configuration AppConfig = ConfigurationManager.OpenExeConfiguration(Assembly.GetExecutingAssembly().Location);
     private static string _logName { get { return AppConfig.AppSettings.Settings[Constants.LogName].Value ?? Constants.FileName; } set { AppConfig.AppSettings.Settings[Constants.LogName].Value = value; } }
     private static string _Path { get { return AppConfig.AppSettings.Settings[Constants.Path].Value ?? ""; } set { AppConfig.AppSettings.Settings[Constants.Path].Value = value; } }
     static public string GetPath { get { return AppConfig.AppSettings.Settings[Constants.Path].Value; } }
@@ -26,7 +28,7 @@ namespace TLoggerProject
     public static void InitTLogger(string pathToFile, string filename = Constants.FileName)
     {
 
-
+      CheckConfigFile();
       AppConfig.AppSettings.Settings[Constants.LastStartedLog].Value = DateTime.Now.ToString("yyyy-dd-M--HH-mm-ss");
       _logName = checkFileName(filename);
       _Path = pathToFile;
@@ -76,6 +78,64 @@ namespace TLoggerProject
   
       return finalName;
 
+    }
+
+    private static void CheckConfigFile()
+    {
+      if (!AppConfig.HasFile)
+      {
+        CreateConfigFile();
+      }
+    }
+
+    private static void CreateConfigFile()
+    {
+      XmlTextWriter xmlWriter = new XmlTextWriter(AppConfig.FilePath,Encoding.UTF8);
+      xmlWriter.Formatting = Formatting.Indented;
+      xmlWriter.WriteStartDocument();
+      xmlWriter.WriteStartElement(Constants.Configuration);
+      xmlWriter.WriteStartElement(Constants.AppSettings);
+
+      xmlWriter.WriteStartElement("add");
+      xmlWriter.WriteAttributeString("key",Constants.Path);
+      xmlWriter.WriteAttributeString("value", ConfigFile.Path);
+      xmlWriter.WriteEndElement();
+
+      xmlWriter.WriteStartElement("add");
+      xmlWriter.WriteAttributeString("key", Constants.OriginalLogName);
+      xmlWriter.WriteAttributeString("value", ConfigFile.OriginalLogName);
+      xmlWriter.WriteEndElement();
+
+      xmlWriter.WriteStartElement("add");
+      xmlWriter.WriteAttributeString("key", Constants.LogName);
+      xmlWriter.WriteAttributeString("value", ConfigFile.LogName);
+      xmlWriter.WriteEndElement();
+
+      xmlWriter.WriteStartElement("add");
+      xmlWriter.WriteAttributeString("key", Constants.LastStartedLog);
+      xmlWriter.WriteAttributeString("value", ConfigFile.LastStartedLog);
+      xmlWriter.WriteEndElement();
+
+      xmlWriter.WriteStartElement("add");
+      xmlWriter.WriteAttributeString("key", Constants.Extension);
+      xmlWriter.WriteAttributeString("value", ConfigFile.Extension);
+      xmlWriter.WriteEndElement();
+
+      /*
+      xmlWriter.WriteString(@"\<!--");
+      xmlWriter.WriteString("Use value=\"SingleFile\" for log file overwriting with every run," +
+                            " value=\"MultipleFile\" for log file with datetime every file");
+      xmlWriter.WriteString(@"--\>");
+      */
+      xmlWriter.WriteStartElement("add");
+      xmlWriter.WriteAttributeString("key", Constants.FileSettings);
+      xmlWriter.WriteAttributeString("value", ConfigFile.FileSettings);
+      xmlWriter.WriteEndElement();
+      xmlWriter.WriteEndElement();
+      xmlWriter.WriteEndElement();
+      xmlWriter.WriteEndDocument();
+      xmlWriter.Close();
+      AppConfig = ConfigurationManager.OpenExeConfiguration(Assembly.GetExecutingAssembly().Location);
     }
 
     public static void SetFileSettings(Constants.FileSettingsEnum enumConstants)
